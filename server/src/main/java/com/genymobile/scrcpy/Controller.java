@@ -19,7 +19,7 @@ public class Controller {
     private static final ScheduledExecutorService EXECUTOR = Executors.newSingleThreadScheduledExecutor();
 
     private final Device device;
-    private final DesktopConnection connection;
+    private final Connection connection;
     private final DeviceMessageSender sender;
     private final boolean clipboardAutosync;
     private final boolean powerOn;
@@ -33,7 +33,7 @@ public class Controller {
 
     private boolean keepPowerModeOff;
 
-    public Controller(Device device, DesktopConnection connection, boolean clipboardAutosync, boolean powerOn) {
+    public Controller(Device device, Connection connection, boolean clipboardAutosync, boolean powerOn) {
         this.device = device;
         this.connection = connection;
         this.clipboardAutosync = clipboardAutosync;
@@ -56,32 +56,11 @@ public class Controller {
         }
     }
 
-    public void control() throws IOException {
-        // on start, power on the device
-        if (powerOn && !Device.isScreenOn()) {
-            device.pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
-
-            // dirty hack
-            // After POWER is injected, the device is powered on asynchronously.
-            // To turn the device screen off while mirroring, the client will send a message that
-            // would be handled before the device is actually powered on, so its effect would
-            // be "canceled" once the device is turned back on.
-            // Adding this delay prevents to handle the message before the device is actually
-            // powered on.
-            SystemClock.sleep(500);
-        }
-
-        while (true) {
-            handleEvent();
-        }
-    }
-
     public DeviceMessageSender getSender() {
         return sender;
     }
 
-    private void handleEvent() throws IOException {
-        ControlMessage msg = connection.receiveControlMessage();
+    public void handleEvent(ControlMessage msg) {
         switch (msg.getType()) {
             case ControlMessage.TYPE_INJECT_KEYCODE:
                 if (device.supportsInputEvents()) {
@@ -291,7 +270,12 @@ public class Controller {
         if (!clipboardAutosync) {
             String clipboardText = Device.getClipboardText();
             if (clipboardText != null) {
-                sender.pushClipboardText(clipboardText);
+                DeviceMessage event = DeviceMessage.createClipboard(clipboardText);
+                try {
+                    connection.sendDeviceMessage(event);
+                } catch (IOException e) {
+                    Ln.w("");
+                }
             }
         }
     }
@@ -313,5 +297,9 @@ public class Controller {
         }
 
         return ok;
+    }
+
+    public void turnScreenOn() {
+        device.pressReleaseKeycode(KeyEvent.KEYCODE_POWER);
     }
 }

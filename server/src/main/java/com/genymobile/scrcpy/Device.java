@@ -64,12 +64,14 @@ public final class Device {
 
     private final boolean supportsInputEvents;
 
-    public Device(Options options) {
-        displayId = options.getDisplayId();
-        DisplayInfo displayInfo = SERVICE_MANAGER.getDisplayManager().getDisplayInfo(displayId);
+    private IRotationWatcher rotationWatcher;
+    private IOnPrimaryClipChangedListener clipChangedListener;
+
+    public Device(final Options options, final VideoSettings videoSettings)  {
+        displayId = videoSettings.getDisplayId();
+        final DisplayInfo displayInfo = Device.getDisplayInfo(displayId);
         if (displayInfo == null) {
-            int[] displayIds = SERVICE_MANAGER.getDisplayManager().getDisplayIds();
-            throw new InvalidDisplayIdException(displayId, displayIds);
+            throw new InvalidDisplayIdException(displayId, Device.getDisplayIds());
         }
 
         int displayInfoFlags = displayInfo.getFlags();
@@ -79,14 +81,14 @@ public final class Device {
         maxSize = options.getMaxSize();
         lockVideoOrientation = options.getLockVideoOrientation();
 
-        screenInfo = ScreenInfo.computeScreenInfo(displayInfo.getRotation(), deviceSize, crop, maxSize, lockVideoOrientation);
+        screenInfo = ScreenInfo.computeScreenInfo(displayInfo, videoSettings);
         layerStack = displayInfo.getLayerStack();
 
-        SERVICE_MANAGER.getWindowManager().registerRotationWatcher(new IRotationWatcher.Stub() {
+        rotationWatcher = new IRotationWatcher.Stub() {
             @Override
             public void onRotationChanged(int rotation) {
                 synchronized (Device.this) {
-                    screenInfo = screenInfo.withDeviceRotation(rotation);
+                    applyNewVideoSetting(videoSettings);
 
                     // notify
                     if (rotationListener != null) {
@@ -94,29 +96,32 @@ public final class Device {
                     }
                 }
             }
-        }, displayId);
+        };
+
+        SERVICE_MANAGER.getWindowManager().registerRotationWatcher(rotationWatcher, displayId);
 
         if (options.getControl() && options.getClipboardAutosync()) {
             // If control and autosync are enabled, synchronize Android clipboard to the computer automatically
             ClipboardManager clipboardManager = SERVICE_MANAGER.getClipboardManager();
-            if (clipboardManager != null) {
-                clipboardManager.addPrimaryClipChangedListener(new IOnPrimaryClipChangedListener.Stub() {
-                    @Override
-                    public void dispatchPrimaryClipChanged() {
-                        if (isSettingClipboard.get()) {
-                            // This is a notification for the change we are currently applying, ignore it
-                            return;
-                        }
-                        synchronized (Device.this) {
-                            if (clipboardListener != null) {
-                                String text = getClipboardText();
-                                if (text != null) {
-                                    clipboardListener.onClipboardTextChanged(text);
-                                }
+            clipChangedListener = new IOnPrimaryClipChangedListener.Stub() {
+                @Override
+                public void dispatchPrimaryClipChanged() {
+                    if (isSettingClipboard.get()) {
+                        // This is a notification for the change we are currently applying, ignore it
+                        return;
+                    }
+                    synchronized (Device.this) {
+                        if (clipboardListener != null) {
+                            String text = getClipboardText();
+                            if (text != null) {
+                                clipboardListener.onClipboardTextChanged(text);
                             }
                         }
                     }
-                });
+                }
+            };
+            if (clipboardManager != null) {
+                clipboardManager.addPrimaryClipChangedListener(clipChangedListener);
             } else {
                 Ln.w("No clipboard manager, copy-paste between device and computer will not work");
             }
@@ -144,6 +149,14 @@ public final class Device {
 
     public int getLayerStack() {
         return layerStack;
+    }
+
+    public void applyNewVideoSetting(VideoSettings videoSettings) {
+        this.setScreenInfo(ScreenInfo.computeScreenInfo(Device.getDisplayInfo(displayId), videoSettings));
+    }
+
+    public synchronized void setScreenInfo(ScreenInfo screenInfo) {
+        this.screenInfo = screenInfo;
     }
 
     public Point getPhysicalPoint(Position position) {
@@ -276,6 +289,22 @@ public final class Device {
         return ok;
     }
 
+    public void release() {
+        if (clipChangedListener != null) {
+            ClipboardManager clipboardManager = SERVICE_MANAGER.getClipboardManager();
+            if (clipboardManager != null) {
+                clipboardManager.removePrimaryClipChangedListener(clipChangedListener);
+            }
+            this.clipboardListener = null;
+        }
+        if (rotationWatcher != null) {
+            SERVICE_MANAGER.getWindowManager().unregisterRotationWatcher(rotationWatcher);
+            rotationWatcher = null;
+        }
+        this.rotationListener = null;
+        this.clipboardListener = null;
+    }
+
     /**
      * @param mode one of the {@code POWER_MODE_*} constants
      */
@@ -318,5 +347,13 @@ public final class Device {
 
     public static Settings getSettings() {
         return SETTINGS;
+    }
+
+    public static int[] getDisplayIds() {
+        return SERVICE_MANAGER.getDisplayManager().getDisplayIds();
+    }
+
+    public static DisplayInfo getDisplayInfo(int displayId) {
+        return SERVICE_MANAGER.getDisplayManager().getDisplayInfo(displayId);
     }
 }
