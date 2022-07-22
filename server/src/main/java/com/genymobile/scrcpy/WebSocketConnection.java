@@ -1,7 +1,6 @@
 package com.genymobile.scrcpy;
 
 import android.media.MediaCodecInfo;
-
 import org.java_websocket.WebSocket;
 
 import java.nio.ByteBuffer;

@@ -300,6 +300,6 @@ public class Controller {
     }
 
     public void turnScreenOn() {
-        device.pressReleaseKeycode(KeyEvent.KEYCODE_POWER);
+        device.pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
     }
 }

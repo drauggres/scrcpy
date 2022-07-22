@@ -82,7 +82,12 @@ public final class ScreenInfo {
         return new ScreenInfo(newContentRect, newUnlockedVideoSize, newDeviceRotation, lockedVideoOrientation);
     }
 
-    public static ScreenInfo computeScreenInfo(int rotation, Size deviceSize, Rect crop, Size bounds, int lockedVideoOrientation) {
+    public static ScreenInfo computeScreenInfo(DisplayInfo displayInfo, VideoSettings videoSettings) {
+        int rotation = displayInfo.getRotation();
+        Size deviceSize = displayInfo.getSize();
+        Rect crop = videoSettings.getCrop();
+        Size bounds = videoSettings.getBounds();
+        int lockedVideoOrientation = videoSettings.getLockedVideoOrientation();
         if (lockedVideoOrientation == Device.LOCK_VIDEO_ORIENTATION_INITIAL) {
             // The user requested to lock the video orientation to the current orientation
             lockedVideoOrientation = rotation;

@@ -1,7 +1,5 @@
 package com.genymobile.scrcpy;
 
-import com.genymobile.scrcpy.wrappers.ContentProvider;
-
 import android.os.BatteryManager;
 import android.os.Build;
 
@@ -36,23 +34,29 @@ public abstract class Connection implements Device.RotationListener, Device.Clip
         this.options = options;
         device = new Device(options, videoSettings);
         device.setRotationListener(this);
-        controller = new Controller(device, this);
+        controller = new Controller(device, this, options.getClipboardAutosync(), options.getPowerOn());
         startDeviceMessageSender(controller.getSender());
         device.setClipboardListener(this);
 
         boolean mustDisableShowTouchesOnCleanUp = false;
         int restoreStayOn = -1;
+        boolean restoreNormalPowerMode = options.getControl(); // only restore power mode if control is enabled
         if (options.getShowTouches() || options.getStayAwake()) {
-            try (ContentProvider settings = Device.createSettingsProvider()) {
-                if (options.getShowTouches()) {
-                    String oldValue = settings.getAndPutValue(ContentProvider.TABLE_SYSTEM, "show_touches", "1");
+            Settings settings = Device.getSettings();
+            if (options.getShowTouches()) {
+                try {
+                    String oldValue = settings.getAndPutValue(Settings.TABLE_SYSTEM, "show_touches", "1");
                     // If "show touches" was disabled, it must be disabled back on clean up
                     mustDisableShowTouchesOnCleanUp = !"1".equals(oldValue);
+                } catch (SettingsException e) {
+                    Ln.e("Could not change \"show_touches\"", e);
                 }
+            }
 
-                if (options.getStayAwake()) {
-                    int stayOn = BatteryManager.BATTERY_PLUGGED_AC | BatteryManager.BATTERY_PLUGGED_USB | BatteryManager.BATTERY_PLUGGED_WIRELESS;
-                    String oldValue = settings.getAndPutValue(ContentProvider.TABLE_GLOBAL, "stay_on_while_plugged_in", String.valueOf(stayOn));
+            if (options.getStayAwake()) {
+                int stayOn = BatteryManager.BATTERY_PLUGGED_AC | BatteryManager.BATTERY_PLUGGED_USB | BatteryManager.BATTERY_PLUGGED_WIRELESS;
+                try {
+                    String oldValue = settings.getAndPutValue(Settings.TABLE_GLOBAL, "stay_on_while_plugged_in", String.valueOf(stayOn));
                     try {
                         restoreStayOn = Integer.parseInt(oldValue);
                         if (restoreStayOn == stayOn) {
@@ -62,14 +66,19 @@ public abstract class Connection implements Device.RotationListener, Device.Clip
                     } catch (NumberFormatException e) {
                         restoreStayOn = 0;
                     }
+                } catch (SettingsException e) {
+                    Ln.e("Could not change \"stay_on_while_plugged_in\"", e);
                 }
             }
         }
 
-        try {
-            CleanUp.configure(options.getDisplayId(), restoreStayOn, mustDisableShowTouchesOnCleanUp, true, options.getPowerOffScreenOnClose());
-        } catch (IOException e) {
-            Ln.w("CleanUp.configure() failed:" + e.getMessage());
+        if (options.getCleanup()) {
+            try {
+                CleanUp.configure(options.getDisplayId(), restoreStayOn, mustDisableShowTouchesOnCleanUp, restoreNormalPowerMode,
+                        options.getPowerOffScreenOnClose());
+            } catch (IOException e) {
+                Ln.e("Could not configure cleanup", e);
+            }
         }
     }
 

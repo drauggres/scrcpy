@@ -23,6 +23,7 @@ public class VideoSettings {
     private String codecOptionsString;
     private List<CodecOption> codecOptions;
     private String encoderName;
+    private boolean downsizeOnError = false;
 
     public int getBitRate() {
         return bitRate;
@@ -115,6 +116,14 @@ public class VideoSettings {
         } else {
             this.encoderName = encoderName;
         }
+    }
+
+    public boolean getDownsizeOnError() {
+        return downsizeOnError;
+    }
+
+    public void setDownsizeOnError(boolean downsizeOnError) {
+        this.downsizeOnError = downsizeOnError;
     }
 
     public byte[] toByteArray() {
@@ -254,7 +263,7 @@ public class VideoSettings {
 
         VideoSettings s = (VideoSettings) o;
         if (bitRate != s.bitRate || maxFps != s.maxFps || lockedVideoOrientation != s.lockedVideoOrientation || iFrameInterval != s.iFrameInterval
-                || sendFrameMeta != s.sendFrameMeta || displayId != s.displayId) {
+                || sendFrameMeta != s.sendFrameMeta || displayId != s.displayId || downsizeOnError != s.downsizeOnError) {
             return false;
         }
         if (!Objects.equals(codecOptionsString, s.codecOptionsString) || !Objects.equals(encoderName, s.encoderName)
@@ -282,6 +291,7 @@ public class VideoSettings {
                 + ", metaFrame=" + sendFrameMeta
                 + ", lockedVideoOrientation=" + lockedVideoOrientation
                 + ", displayId=" + displayId
+                + ", downsizeOnError=" + (downsizeOnError ? "true" : "false")
                 + ", codecOptions=" + (this.codecOptionsString == null ? "-" : this.codecOptionsString)
                 + ", encoderName=" + (this.encoderName == null ? "-" : this.encoderName)
                 + "}";

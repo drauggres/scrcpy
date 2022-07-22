@@ -121,7 +121,7 @@ public class ScreenEncoder implements Connection.StreamInvalidateListener, Runna
                     codec.stop();
                 } catch (IllegalStateException | IllegalArgumentException e) {
                     Ln.e("Encoding error: " + e.getClass().getName() + ": " + e.getMessage());
-                    if (!downsizeOnError || firstFrameSent) {
+                    if (!videoSettings.getDownsizeOnError() || firstFrameSent) {
                         // Fail immediately
                         throw e;
                     }
@@ -206,8 +206,7 @@ public class ScreenEncoder implements Connection.StreamInvalidateListener, Runna
             if (ptsOrigin == 0) {
                 ptsOrigin = bufferInfo.presentationTimeUs;
             }
-            pts = bufferInfo.presentationTimeUs - ptsOrigin        Size bounds = videoSettings.getBounds();
-;
+            pts = bufferInfo.presentationTimeUs - ptsOrigin;
             if ((bufferInfo.flags & MediaCodec.BUFFER_FLAG_KEY_FRAME) != 0) {
                 pts |= PACKET_FLAG_KEY_FRAME;
             }

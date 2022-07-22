@@ -2,7 +2,6 @@ package com.genymobile.scrcpy;
 
 import android.graphics.Rect;
 import android.media.MediaCodecInfo;
-import android.os.Build;
 
 import java.util.Locale;
 
@@ -23,7 +22,7 @@ public final class Server {
                     "The server version (" + BuildConfig.VERSION_NAME + ") does not match the client " + "(" + clientVersion + ")");
         }
 
-        if (args[1].toLowerCase().equals("web")) {
+        if (args[1].equalsIgnoreCase("web")) {
             options.setServerType(Options.TYPE_WEB_SOCKET);
             if (args.length > 2) {
                 Ln.Level level = Ln.Level.valueOf(args[2].toUpperCase(Locale.ENGLISH));
@@ -39,60 +38,7 @@ public final class Server {
             }
             return;
         }
-
-        final int expectedParameters = 16;
-        if (args.length != expectedParameters) {
-            throw new IllegalArgumentException("Expecting " + expectedParameters + " parameters");
-        }
-
-        Ln.Level level = Ln.Level.valueOf(args[1].toUpperCase(Locale.ENGLISH));
-        options.setLogLevel(level);
-
-        int maxSize = Integer.parseInt(args[2]);
-        if (maxSize != 0) {
-            videoSettings.setBounds(maxSize, maxSize);
-        }
-
-        int bitRate = Integer.parseInt(args[3]);
-        videoSettings.setBitRate(bitRate);
-
-        int maxFps = Integer.parseInt(args[4]);
-        videoSettings.setMaxFps(maxFps);
-
-        int lockedVideoOrientation = Integer.parseInt(args[5]);
-        videoSettings.setLockedVideoOrientation(lockedVideoOrientation);
-
-        // use "adb forward" instead of "adb tunnel"? (so the server must listen)
-        boolean tunnelForward = Boolean.parseBoolean(args[6]);
-        options.setTunnelForward(tunnelForward);
-
-        Rect crop = parseCrop(args[7]);
-        videoSettings.setCrop(crop);
-
-        boolean sendFrameMeta = Boolean.parseBoolean(args[8]);
-        videoSettings.setSendFrameMeta(sendFrameMeta);
-
-        boolean control = Boolean.parseBoolean(args[9]);
-        options.setControl(control);
-
-        int displayId = Integer.parseInt(args[10]);
-        videoSettings.setDisplayId(displayId);
-
-        boolean showTouches = Boolean.parseBoolean(args[11]);
-        options.setShowTouches(showTouches);
-
-        boolean stayAwake = Boolean.parseBoolean(args[12]);
-        options.setStayAwake(stayAwake);
-
-        String codecOptions = args[13];
-        options.setCodecOptions(codecOptions);
-        videoSettings.setCodecOptions(codecOptions);
-
-        String encoderName = "-".equals(args[14]) ? null : args[14];
-        videoSettings.setEncoderName(encoderName);
-
-        boolean powerOffScreenOnClose = Boolean.parseBoolean(args[15]);
-        options.setPowerOffScreenOnClose(powerOffScreenOnClose);
+        // TODO: put here original scrcpy params parsing
     }
 
     private static Rect parseCrop(String crop) {

@@ -7,7 +7,7 @@ android {
         minSdkVersion 21
         targetSdkVersion 31
         versionCode 12400
-        versionName "1.24-ws1"
+        versionName "1.24-ws0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {

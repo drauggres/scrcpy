@@ -23,7 +23,6 @@ public class Options {
     private String encoderName;
     private boolean powerOffScreenOnClose;
     private boolean clipboardAutosync = true;
-    private boolean downsizeOnError = true;
     private boolean cleanup = true;
     private boolean powerOn = true;
 
@@ -153,14 +152,6 @@ public class Options {
 
     public void setClipboardAutosync(boolean clipboardAutosync) {
         this.clipboardAutosync = clipboardAutosync;
-    }
-
-    public boolean getDownsizeOnError() {
-        return downsizeOnError;
-    }
-
-    public void setDownsizeOnError(boolean downsizeOnError) {
-        this.downsizeOnError = downsizeOnError;
     }
 
     public boolean getCleanup() {

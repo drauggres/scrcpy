@@ -44,13 +44,13 @@ public final class Device {
 
     private final Size deviceSize;
     private final Rect crop;
-    private int maxSize;
     private final int lockVideoOrientation;
 
     private ScreenInfo screenInfo;
     private RotationListener rotationListener;
     private ClipboardListener clipboardListener;
     private final AtomicBoolean isSettingClipboard = new AtomicBoolean();
+    private final VideoSettings videoSettings;
 
     /**
      * Logical display identifier
@@ -68,6 +68,7 @@ public final class Device {
     private IOnPrimaryClipChangedListener clipChangedListener;
 
     public Device(final Options options, final VideoSettings videoSettings)  {
+        this.videoSettings = videoSettings;
         displayId = videoSettings.getDisplayId();
         final DisplayInfo displayInfo = Device.getDisplayInfo(displayId);
         if (displayInfo == null) {
@@ -78,7 +79,6 @@ public final class Device {
 
         deviceSize = displayInfo.getSize();
         crop = options.getCrop();
-        maxSize = options.getMaxSize();
         lockVideoOrientation = options.getLockVideoOrientation();
 
         screenInfo = ScreenInfo.computeScreenInfo(displayInfo, videoSettings);
@@ -139,8 +139,8 @@ public final class Device {
     }
 
     public synchronized void setMaxSize(int newMaxSize) {
-        maxSize = newMaxSize;
-        screenInfo = ScreenInfo.computeScreenInfo(screenInfo.getReverseVideoRotation(), deviceSize, crop, newMaxSize, lockVideoOrientation);
+        videoSettings.setBounds(new Size(newMaxSize, newMaxSize));
+        screenInfo = ScreenInfo.computeScreenInfo(getDisplayInfo(displayId), videoSettings);
     }
 
     public synchronized ScreenInfo getScreenInfo() {

@@ -13,8 +13,6 @@ public abstract class DeviceMessage {
     public static final long SEQUENCE_INVALID = ControlMessage.SEQUENCE_INVALID;
 
     private int type;
-    private String text;
-    private long sequence;
 
     private DeviceMessage(int type) {
         this.type = type;
@@ -22,8 +20,8 @@ public abstract class DeviceMessage {
 
     private static final class ClipboardMessage extends DeviceMessage {
         public static final int CLIPBOARD_TEXT_MAX_LENGTH = MESSAGE_MAX_SIZE - 5; // type: 1 byte; length: 4 bytes
-        private byte[] raw;
-        private int len;
+        private final byte[] raw;
+        private final int len;
         private ClipboardMessage(String text) {
             super(TYPE_CLIPBOARD);
             this.raw = text.getBytes(StandardCharsets.UTF_8);
@@ -40,9 +38,25 @@ public abstract class DeviceMessage {
         }
     }
 
+    private static final class ClipboardAckMessage extends DeviceMessage {
+        private final long sequence;
+        private ClipboardAckMessage(long sequence) {
+            super(TYPE_ACK_CLIPBOARD);
+            this.sequence = sequence;
+        }
+        public void writeToByteArray(byte[] array, int offset) {
+            ByteBuffer buffer = ByteBuffer.wrap(array, offset, array.length - offset);
+            buffer.put((byte) this.getType());
+            buffer.putLong(sequence);
+        }
+        public int getLen() {
+            return 9;
+        }
+    }
+
     private static final class FilePushResponseMessage extends DeviceMessage {
-        private short id;
-        private int result;
+        private final short id;
+        private final int result;
 
         private FilePushResponseMessage(short id, int result) {
             super(TYPE_PUSH_RESPONSE);
@@ -73,27 +87,23 @@ public abstract class DeviceMessage {
     }
 
     public static DeviceMessage createAckClipboard(long sequence) {
-        DeviceMessage event = new DeviceMessage();
-        event.type = TYPE_ACK_CLIPBOARD;
-        event.sequence = sequence;
-        return event;
+        return new ClipboardAckMessage(sequence);
     }
 
     public int getType() {
         return type;
     }
+
     public void writeToByteArray(byte[] array) {
         writeToByteArray(array, 0);
     }
 
-    public long getSequence() {
-        return sequence;
-    }
     public byte[] writeToByteArray(int offset) {
         byte[] temp = new byte[offset + this.getLen()];
         writeToByteArray(temp, offset);
         return temp;
     }
+
     public abstract void writeToByteArray(byte[] array, int offset);
     public abstract int getLen();
 }

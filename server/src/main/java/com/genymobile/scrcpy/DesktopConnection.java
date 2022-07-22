@@ -19,18 +19,12 @@ public final class DesktopConnection extends Connection {
     private final LocalSocket videoSocket;
     private final FileDescriptor videoFd;
 
-    private final LocalSocket controlSocket;
+    private LocalSocket controlSocket = null;
     private final InputStream controlInputStream;
     private final OutputStream controlOutputStream;
 
     private final ControlMessageReader reader = new ControlMessageReader();
     private final DeviceMessageWriter writer = new DeviceMessageWriter();
-
-    private DesktopConnection(Options options, VideoSettings videoSettings) throws IOException {
-        super(options, videoSettings);
-        
-       
-    }
 
     private static LocalSocket connect(String abstractName) throws IOException {
         LocalSocket localSocket = new LocalSocket();
@@ -76,10 +70,10 @@ public final class DesktopConnection extends Connection {
 
         videoFd = videoSocket.getFileDescriptor();
         if (options.getControl()) {
-            startEventController();
+            startEventController(options.getPowerOn());
         }
         Size videoSize = device.getScreenInfo().getVideoSize();
-        send(Device.getDeviceName(), videoSize.getWidth(), videoSize.getHeight());
+        sendDeviceMeta(Device.getDeviceName(), videoSize.getWidth(), videoSize.getHeight());
         screenEncoder = new ScreenEncoder(videoSettings);
         screenEncoder.setDevice(device);
         screenEncoder.setConnection(this);
@@ -136,22 +130,13 @@ public final class DesktopConnection extends Connection {
         return videoFd;
     }
 
-    private void startEventController() {
+    private void startEventController(Boolean powerOn) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-
-
                     // on start, power on the device
                     if (powerOn && !Device.isScreenOn()) {
-                        device.pressReleaseKeycode(KeyEvent.KEYCODE_POWER, Device.INJECT_MODE_ASYNC);
-
-                    }
-
-
-                        // on start, power on the device
-                    if (!Device.isScreenOn()) {
                         controller.turnScreenOn();
 
                         // dirty hack
