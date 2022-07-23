@@ -43,11 +43,11 @@ public final class DisplayManager {
             method = manager.getClass().getMethod(methodName);
             return (int[]) method.invoke(manager);
         } catch (NoSuchMethodException e) {
+            Ln.d("/// START ws-scrcpy/issues/208");
             Ln.d("Failed to get display ids");
-            Ln.d("Available methods:");
             for (Method m: manager.getClass().getMethods()) {
-                Ln.d(m.getName() + " parameters:");
                 if (m.getName().equals(methodName)) {
+                    Ln.d(m.getName() + " parameters:");
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         if (m.getParameterCount() > 0) {
                             for (Class c : m.getParameterTypes()) {
@@ -57,10 +57,10 @@ public final class DisplayManager {
                             Ln.d("No parameters");
                         }
                     }
+                    Ln.d("Return type: " + m.getReturnType().getName());
                 }
-                Ln.d("Return type: " + m.getReturnType().getName());
             }
-            Ln.d("///");
+            Ln.d("/// END ws-scrcpy/issues/208");
             return new int[]{Display.DEFAULT_DISPLAY};
         } catch (Exception e) {
             throw new AssertionError(e);
